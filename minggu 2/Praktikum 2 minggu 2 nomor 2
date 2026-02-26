@@ -1,0 +1,68 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# =========================
+# LOAD GAMBAR
+# =========================
+image = cv2.imread('ruang tamu.png')
+
+if image is None:
+    print("File tidak ditemukan, menggunakan gambar sintetik.")
+    image = np.zeros((300,400,3), dtype=np.uint8)
+    cv2.rectangle(image,(50,50),(150,150),(0,0,255),-1)
+    cv2.circle(image,(250,100),50,(0,255,0),-1)
+    cv2.ellipse(image,(300,200),(80,40),30,0,360,(255,0,0),-1)
+
+def simulate_image_aliasing(image, downsampling_factors):
+    
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    plt.figure(figsize=(15,8))
+    
+    for i, factor in enumerate(downsampling_factors):
+        
+      
+        down_no_filter = gray[::factor, ::factor]
+        resized_no = cv2.resize(
+            down_no_filter,
+            (gray.shape[1], gray.shape[0]),
+            interpolation=cv2.INTER_NEAREST
+        )
+
+        blurred = cv2.GaussianBlur(gray, (5,5), 0)
+        down_filtered = blurred[::factor, ::factor]
+        resized_filtered = cv2.resize(
+            down_filtered,
+            (gray.shape[1], gray.shape[0]),
+            interpolation=cv2.INTER_NEAREST
+        )
+        
+
+        mse_no = np.mean((gray - resized_no) ** 2)
+        mse_filtered = np.mean((gray - resized_filtered) ** 2)
+        
+        psnr_no = 10 * np.log10((255**2) / mse_no) if mse_no > 0 else float('inf')
+        psnr_filtered = 10 * np.log10((255**2) / mse_filtered) if mse_filtered > 0 else float('inf')
+        
+        print(f"\nFactor x{factor}")
+        print(f"Tanpa Filter  → MSE: {mse_no:.2f} | PSNR: {psnr_no:.2f} dB")
+        print(f"Dengan Filter → MSE: {mse_filtered:.2f} | PSNR: {psnr_filtered:.2f} dB")
+        
+
+        plt.subplot(2, len(downsampling_factors), i+1)
+        plt.imshow(resized_no, cmap='gray')
+        plt.title(f"x{factor} No Filter")
+        plt.axis('off')
+        
+        plt.subplot(2, len(downsampling_factors), i+1+len(downsampling_factors))
+        plt.imshow(resized_filtered, cmap='gray')
+        plt.title(f"x{factor} With Filter")
+        plt.axis('off')
+    
+    plt.suptitle("Simulasi Aliasing pada Citra", fontsize=14)
+    plt.tight_layout()
+    plt.show()
+
+
+simulate_image_aliasing(image, [2,4,8])
